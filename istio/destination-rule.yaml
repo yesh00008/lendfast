@@ -1,0 +1,72 @@
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: lendfast-api-gateway-dr
+  namespace: lendfast
+spec:
+  host: lendfast-api-gateway
+  trafficPolicy:
+    loadBalancer: { simple: ROUND_ROBIN }
+    connectionPool:
+      http: { http1MaxPendingRequests: 100, http2MaxRequests: 500 }
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: lendfast-borrower-service-dr
+  namespace: lendfast
+spec:
+  host: lendfast-borrower-service
+  trafficPolicy:
+    loadBalancer: { simple: ROUND_ROBIN }
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: lendfast-underwriting-service-dr
+  namespace: lendfast
+spec:
+  host: lendfast-underwriting-service
+  trafficPolicy:
+    loadBalancer: { simple: ROUND_ROBIN }
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: lendfast-loan-management-dr
+  namespace: lendfast
+spec:
+  host: lendfast-loan-management
+  trafficPolicy:
+    loadBalancer: { simple: ROUND_ROBIN }
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: lendfast-payment-service-dr
+  namespace: lendfast
+spec:
+  host: lendfast-payment-service
+  trafficPolicy:
+    loadBalancer: { simple: ROUND_ROBIN }
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s

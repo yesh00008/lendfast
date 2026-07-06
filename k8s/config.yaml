@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lendfast-config
+  namespace: lendfast
+data:
+  DB_URL: "postgres://fintech:fintech123@postgres.payflow:5432/lendfast?sslmode=disable"
+  DATABASE_URL: "postgres://fintech:fintech123@postgres.payflow:5432/lendfast"
+  REDIS_URL: "redis.payflow:6379"
+  RABBITMQ_URL: "amqp://fintech:rabbit123@rabbitmq.payflow:5672/"
+  API_GATEWAY_URL: "http://lendfast-api-gateway.lendfast.svc.cluster.local:8300"
+  BORROWER_SERVICE_URL: "http://lendfast-borrower-service.lendfast.svc.cluster.local:8301"
+  APPLICATION_SERVICE_URL: "http://lendfast-application-service.lendfast.svc.cluster.local:8302"
+  UNDERWRITING_SERVICE_URL: "http://lendfast-underwriting-service.lendfast.svc.cluster.local:8303"
+  LOAN_MANAGEMENT_URL: "http://lendfast-loan-management.lendfast.svc.cluster.local:8304"
+  PAYMENT_SERVICE_URL: "http://lendfast-payment-service.lendfast.svc.cluster.local:8305"
+  COLLECTIONS_SERVICE_URL: "http://lendfast-collections-service.lendfast.svc.cluster.local:8306"
+  REPORTING_SERVICE_URL: "http://lendfast-reporting-service.lendfast.svc.cluster.local:8307"
+  OTEL_SERVICE_NAMESPACE: "lendfast"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: lendfast-secrets
+  namespace: lendfast
+type: Opaque
+stringData:
+  JWT_SECRET: lendfast-jwt-secret-key-2024
+  DB_PASSWORD: lendfast_pass
+  REDIS_PASSWORD: lendfast_redis_pass

@@ -1,0 +1,50 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lendfast-prometheus-config
+  namespace: lendfast
+data:
+  lendfast-scrape.yaml: |
+    scrape_configs:
+      - job_name: 'lendfast-api-gateway'
+        static_configs:
+          - targets: ['lendfast-api-gateway.lendfast.svc.cluster.local:8300']
+        metrics_path: /metrics
+      - job_name: 'lendfast-borrower-service'
+        static_configs:
+          - targets: ['lendfast-borrower-service.lendfast.svc.cluster.local:8301']
+        metrics_path: /metrics
+      - job_name: 'lendfast-application-service'
+        static_configs:
+          - targets: ['lendfast-application-service.lendfast.svc.cluster.local:8302']
+        metrics_path: /metrics
+      - job_name: 'lendfast-underwriting-service'
+        static_configs:
+          - targets: ['lendfast-underwriting-service.lendfast.svc.cluster.local:8303']
+        metrics_path: /metrics
+      - job_name: 'lendfast-loan-management'
+        static_configs:
+          - targets: ['lendfast-loan-management.lendfast.svc.cluster.local:8304']
+        metrics_path: /metrics
+      - job_name: 'lendfast-payment-service'
+        static_configs:
+          - targets: ['lendfast-payment-service.lendfast.svc.cluster.local:8305']
+        metrics_path: /metrics
+      - job_name: 'lendfast-collections-service'
+        static_configs:
+          - targets: ['lendfast-collections-service.lendfast.svc.cluster.local:8306']
+        metrics_path: /metrics
+      - job_name: 'lendfast-reporting-service'
+        static_configs:
+          - targets: ['lendfast-reporting-service.lendfast.svc.cluster.local:8307']
+        metrics_path: /metrics
+      - job_name: 'istio-mesh-lendfast'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: [lendfast]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            action: keep
+            regex: istio-proxy

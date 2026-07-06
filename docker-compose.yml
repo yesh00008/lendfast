@@ -1,0 +1,217 @@
+name: lendfast
+
+services:
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB:       lendfast
+      POSTGRES_USER:     lendfast
+      POSTGRES_PASSWORD: lendfast_pass
+    ports:
+    - "5435:5432"
+    volumes:
+    - lendfast-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lendfast"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [lendfast]
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass lendfast_redis_pass
+    ports:
+    - "6382:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "lendfast_redis_pass", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [lendfast]
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: lendfast
+      RABBITMQ_DEFAULT_PASS: lendfast_pass
+    ports:
+    - "5675:5672"
+    - "15675:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    networks: [lendfast]
+
+  # ── Application Services ─────────────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: ./lendfast/services/api-gateway
+      dockerfile: Dockerfile
+    image: lendfast/api-gateway:latest
+    ports:
+    - "8300:8300"
+    environment:
+      PORT: "8300"
+      DB_URL: postgres://lendfast:lendfast_pass@postgres:5432/lendfast?sslmode=disable
+      REDIS_URL: redis://:lendfast_redis_pass@redis:6379
+      RABBITMQ_URL: amqp://lendfast:lendfast_pass@rabbitmq:5672
+      JWT_SECRET: lendfast-jwt-secret-key-2024
+    env_file: [.env]
+    depends_on:
+      postgres:  { condition: service_healthy }
+      redis:     { condition: service_healthy }
+      rabbitmq:  { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8300/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks: [lendfast]
+    restart: unless-stopped
+
+  borrower-service:
+    build:
+      context: ./lendfast/services/borrower-service
+      dockerfile: Dockerfile
+    image: lendfast/borrower-service:latest
+    ports:
+    - "8301:8301"
+    environment:
+      PORT: "8301"
+      DB_URL: postgres://lendfast:lendfast_pass@postgres:5432/lendfast?sslmode=disable
+      REDIS_URL: redis://:lendfast_redis_pass@redis:6379
+      JWT_SECRET: lendfast-jwt-secret-key-2024
+    env_file: [.env]
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [lendfast]
+    restart: unless-stopped
+
+  application-service:
+    build:
+      context: ./lendfast/services/application-service
+      dockerfile: Dockerfile
+    image: lendfast/application-service:latest
+    ports:
+    - "8302:8302"
+    environment:
+      PORT: "8302"
+      DB_URL: postgres://lendfast:lendfast_pass@postgres:5432/lendfast?sslmode=disable
+      RABBITMQ_URL: amqp://lendfast:lendfast_pass@rabbitmq:5672
+      JWT_SECRET: lendfast-jwt-secret-key-2024
+    env_file: [.env]
+    depends_on:
+      postgres:  { condition: service_healthy }
+      rabbitmq:  { condition: service_healthy }
+    networks: [lendfast]
+    restart: unless-stopped
+
+  # Python FastAPI service
+  underwriting-service:
+    build:
+      context: ./lendfast/services/underwriting-service
+      dockerfile: Dockerfile
+    image: lendfast/underwriting-service:latest
+    ports:
+    - "8303:8303"
+    environment:
+      PORT: "8303"
+      DATABASE_URL: postgresql://lendfast:lendfast_pass@postgres:5432/lendfast
+      REDIS_URL: redis://:lendfast_redis_pass@redis:6379
+      JWT_SECRET: lendfast-jwt-secret-key-2024
+    env_file: [.env]
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8303/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks: [lendfast]
+    restart: unless-stopped
+
+  loan-management-service:
+    build:
+      context: ./lendfast/services/loan-management-service
+      dockerfile: Dockerfile
+    image: lendfast/loan-management-service:latest
+    ports:
+    - "8304:8304"
+    environment:
+      PORT: "8304"
+      DB_URL: postgres://lendfast:lendfast_pass@postgres:5432/lendfast?sslmode=disable
+      RABBITMQ_URL: amqp://lendfast:lendfast_pass@rabbitmq:5672
+      JWT_SECRET: lendfast-jwt-secret-key-2024
+    env_file: [.env]
+    depends_on:
+      postgres:  { condition: service_healthy }
+      rabbitmq:  { condition: service_healthy }
+    networks: [lendfast]
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ./lendfast/services/payment-service
+      dockerfile: Dockerfile
+    image: lendfast/payment-service:latest
+    ports:
+    - "8305:8305"
+    environment:
+      PORT: "8305"
+      DB_URL: postgres://lendfast:lendfast_pass@postgres:5432/lendfast?sslmode=disable
+      RABBITMQ_URL: amqp://lendfast:lendfast_pass@rabbitmq:5672
+      JWT_SECRET: lendfast-jwt-secret-key-2024
+    env_file: [.env]
+    depends_on:
+      postgres:  { condition: service_healthy }
+      rabbitmq:  { condition: service_healthy }
+    networks: [lendfast]
+    restart: unless-stopped
+
+  collections-service:
+    build:
+      context: ./lendfast/services/collections-service
+      dockerfile: Dockerfile
+    image: lendfast/collections-service:latest
+    ports:
+    - "8306:8306"
+    environment:
+      PORT: "8306"
+      DB_URL: postgres://lendfast:lendfast_pass@postgres:5432/lendfast?sslmode=disable
+      RABBITMQ_URL: amqp://lendfast:lendfast_pass@rabbitmq:5672
+      JWT_SECRET: lendfast-jwt-secret-key-2024
+    env_file: [.env]
+    depends_on:
+      postgres:  { condition: service_healthy }
+      rabbitmq:  { condition: service_healthy }
+    networks: [lendfast]
+    restart: unless-stopped
+
+  reporting-service:
+    build:
+      context: ./lendfast/services/reporting-service
+      dockerfile: Dockerfile
+    image: lendfast/reporting-service:latest
+    ports:
+    - "8307:8307"
+    environment:
+      PORT: "8307"
+      DB_URL: postgres://lendfast:lendfast_pass@postgres:5432/lendfast?sslmode=disable
+      JWT_SECRET: lendfast-jwt-secret-key-2024
+    env_file: [.env]
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [lendfast]
+    restart: unless-stopped
+
+volumes:
+  lendfast-postgres-data:
+
+networks:
+  lendfast:
+    driver: bridge
+    name: lendfast-network

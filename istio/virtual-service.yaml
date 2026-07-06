@@ -1,0 +1,30 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: lendfast-vs
+  namespace: lendfast
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - lendfast-gateway
+  http:
+  - match:
+    - uri: { prefix: /health }
+    route:
+    - destination:
+        host: lendfast-api-gateway
+        port: { number: 8300 }
+  - match:
+    - uri: { prefix: /api }
+    route:
+    - destination:
+        host: lendfast-api-gateway
+        port: { number: 8300 }
+      timeout: 30s
+  - match:
+    - uri: { prefix: /metrics }
+    route:
+    - destination:
+        host: lendfast-api-gateway
+        port: { number: 8300 }

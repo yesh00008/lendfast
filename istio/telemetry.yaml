@@ -1,0 +1,25 @@
+---
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: lendfast-access-logs
+  namespace: lendfast
+spec:
+  accessLogging:
+  - providers:
+    - name: envoy
+    disabled: false
+---
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: lendfast-metrics
+  namespace: lendfast
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+    overrides:
+    - match:
+        mode: CLIENT_AND_SERVER
+      disabled: false

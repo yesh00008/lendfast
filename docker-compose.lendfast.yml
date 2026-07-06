@@ -1,0 +1,201 @@
+version: '3.8'
+
+# ─── LendFast Application 4 ─── Lending & Credit Platform ───────────────────
+# Services:
+#   8 Go microservices + 1 Python ML service + Node.js BFF + React Frontend
+#
+# Ports:
+#   Go Services:          8300-8307
+#   Underwriting (Python): 8303
+#   Backend API (BFF):    5001
+#   Frontend:             3004
+#
+# Shared infra (from PayFlow): PostgreSQL, Redis, RabbitMQ
+
+services:
+
+  # ─── API Gateway ──────────────────────────────────────────────────────────
+  lendfast-api-gateway:
+    build:
+      context: ./lendfast/services/api-gateway
+      dockerfile: Dockerfile
+    container_name: lendfast-api-gateway
+    ports:
+      - "8300:8300"
+    environment:
+      - PORT=8300
+      - DATABASE_URL=postgresql://fintech:fintech123@payflow-postgres:5432/lendfast?sslmode=disable
+      - REDIS_URL=payflow-redis:6379
+      - RABBITMQ_URL=amqp://fintech:rabbit123@payflow-rabbitmq:5672/
+    depends_on:
+      - lendfast-borrower-service
+      - lendfast-application-service
+      - lendfast-underwriting-service
+      - lendfast-loan-management-service
+      - lendfast-payment-service
+      - lendfast-collections-service
+      - lendfast-reporting-service
+    networks:
+      - payflow-network
+    restart: unless-stopped
+
+  # ─── Borrower Service ─────────────────────────────────────────────────────
+  lendfast-borrower-service:
+    build:
+      context: ./lendfast/services/borrower-service
+      dockerfile: Dockerfile
+    container_name: lendfast-borrower-service
+    ports:
+      - "8301:8301"
+    environment:
+      - PORT=8301
+      - DATABASE_URL=postgresql://fintech:fintech123@payflow-postgres:5432/lendfast?sslmode=disable
+      - REDIS_URL=payflow-redis:6379
+      - RABBITMQ_URL=amqp://fintech:rabbit123@payflow-rabbitmq:5672/
+    networks:
+      - payflow-network
+    restart: unless-stopped
+
+  # ─── Application Service ──────────────────────────────────────────────────
+  lendfast-application-service:
+    build:
+      context: ./lendfast/services/application-service
+      dockerfile: Dockerfile
+    container_name: lendfast-application-service
+    ports:
+      - "8302:8302"
+    environment:
+      - PORT=8302
+      - DATABASE_URL=postgresql://fintech:fintech123@payflow-postgres:5432/lendfast?sslmode=disable
+      - REDIS_URL=payflow-redis:6379
+      - RABBITMQ_URL=amqp://fintech:rabbit123@payflow-rabbitmq:5672/
+    networks:
+      - payflow-network
+    restart: unless-stopped
+
+  # ─── Underwriting Service (Python / ML) ───────────────────────────────────
+  lendfast-underwriting-service:
+    build:
+      context: ./lendfast/services/underwriting-service
+      dockerfile: Dockerfile
+    container_name: lendfast-underwriting-service
+    ports:
+      - "8303:8303"
+    environment:
+      - PORT=8303
+      - DATABASE_URL=postgresql://fintech:fintech123@payflow-postgres:5432/lendfast?sslmode=disable
+      - REDIS_URL=payflow-redis
+      - REDIS_PORT=6379
+    networks:
+      - payflow-network
+    restart: unless-stopped
+
+  # ─── Loan Management Service ──────────────────────────────────────────────
+  lendfast-loan-management-service:
+    build:
+      context: ./lendfast/services/loan-management-service
+      dockerfile: Dockerfile
+    container_name: lendfast-loan-management-service
+    ports:
+      - "8304:8304"
+    environment:
+      - PORT=8304
+      - DATABASE_URL=postgresql://fintech:fintech123@payflow-postgres:5432/lendfast?sslmode=disable
+      - REDIS_URL=payflow-redis:6379
+      - RABBITMQ_URL=amqp://fintech:rabbit123@payflow-rabbitmq:5672/
+    networks:
+      - payflow-network
+    restart: unless-stopped
+
+  # ─── Payment Service ──────────────────────────────────────────────────────
+  lendfast-payment-service:
+    build:
+      context: ./lendfast/services/payment-service
+      dockerfile: Dockerfile
+    container_name: lendfast-payment-service
+    ports:
+      - "8305:8305"
+    environment:
+      - PORT=8305
+      - DATABASE_URL=postgresql://fintech:fintech123@payflow-postgres:5432/lendfast?sslmode=disable
+      - REDIS_URL=payflow-redis:6379
+      - RABBITMQ_URL=amqp://fintech:rabbit123@payflow-rabbitmq:5672/
+    networks:
+      - payflow-network
+    restart: unless-stopped
+
+  # ─── Collections Service ──────────────────────────────────────────────────
+  lendfast-collections-service:
+    build:
+      context: ./lendfast/services/collections-service
+      dockerfile: Dockerfile
+    container_name: lendfast-collections-service
+    ports:
+      - "8306:8306"
+    environment:
+      - PORT=8306
+      - DATABASE_URL=postgresql://fintech:fintech123@payflow-postgres:5432/lendfast?sslmode=disable
+      - REDIS_URL=payflow-redis:6379
+      - RABBITMQ_URL=amqp://fintech:rabbit123@payflow-rabbitmq:5672/
+    networks:
+      - payflow-network
+    restart: unless-stopped
+
+  # ─── Reporting Service ────────────────────────────────────────────────────
+  lendfast-reporting-service:
+    build:
+      context: ./lendfast/services/reporting-service
+      dockerfile: Dockerfile
+    container_name: lendfast-reporting-service
+    ports:
+      - "8307:8307"
+    environment:
+      - PORT=8307
+      - DATABASE_URL=postgresql://fintech:fintech123@payflow-postgres:5432/lendfast?sslmode=disable
+      - REDIS_URL=payflow-redis:6379
+      - RABBITMQ_URL=amqp://fintech:rabbit123@payflow-rabbitmq:5672/
+    networks:
+      - payflow-network
+    restart: unless-stopped
+
+  # ─── Backend API (BFF) ────────────────────────────────────────────────────
+  lendfast-backend-api:
+    build:
+      context: ./backend-api
+      dockerfile: Dockerfile
+    container_name: lendfast-backend-api
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - GATEWAY_URL=http://lendfast-api-gateway:8300
+      - BORROWER_URL=http://lendfast-borrower-service:8301
+      - APPLICATION_URL=http://lendfast-application-service:8302
+      - UNDERWRITING_URL=http://lendfast-underwriting-service:8303
+      - LOAN_URL=http://lendfast-loan-management-service:8304
+      - PAYMENT_URL=http://lendfast-payment-service:8305
+      - COLLECTIONS_URL=http://lendfast-collections-service:8306
+      - REPORTING_URL=http://lendfast-reporting-service:8307
+    depends_on:
+      - lendfast-api-gateway
+    networks:
+      - payflow-network
+    restart: unless-stopped
+
+  # ─── Frontend (React) ─────────────────────────────────────────────────────
+  lendfast-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: lendfast-frontend
+    ports:
+      - "3004:3004"
+    depends_on:
+      - lendfast-backend-api
+    networks:
+      - payflow-network
+    restart: unless-stopped
+
+networks:
+  payflow-network:
+    external: true

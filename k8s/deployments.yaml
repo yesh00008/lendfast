@@ -1,0 +1,426 @@
+---
+# ─── API Gateway (8300) ───────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lendfast-api-gateway
+  namespace: lendfast
+  labels:
+    app: lendfast-api-gateway
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lendfast-api-gateway
+  template:
+    metadata:
+      labels:
+        app: lendfast-api-gateway
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8300"
+    spec:
+      containers:
+      - name: api-gateway
+        image: lendfast/api-gateway:latest
+        imagePullPolicy: Never
+        ports:
+        - { containerPort: 8300, name: http }
+        envFrom:
+        - configMapRef: { name: lendfast-config }
+        - secretRef:    { name: lendfast-secrets }
+        resources:
+          requests: { memory: "128Mi", cpu: "100m" }
+          limits:   { memory: "256Mi", cpu: "500m" }
+        livenessProbe:
+          httpGet: { path: /health, port: 8300 }
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet: { path: /health, port: 8300 }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lendfast-api-gateway
+  namespace: lendfast
+spec:
+  selector:
+    app: lendfast-api-gateway
+  ports:
+  - { port: 8300, targetPort: 8300, name: http }
+
+---
+# ─── Borrower Service (8301) ──────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lendfast-borrower-service
+  namespace: lendfast
+  labels:
+    app: lendfast-borrower-service
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lendfast-borrower-service
+  template:
+    metadata:
+      labels:
+        app: lendfast-borrower-service
+        version: v1
+    spec:
+      containers:
+      - name: borrower-service
+        image: lendfast/borrower-service:latest
+        imagePullPolicy: Never
+        ports:
+        - { containerPort: 8301, name: http }
+        envFrom:
+        - configMapRef: { name: lendfast-config }
+        - secretRef:    { name: lendfast-secrets }
+        resources:
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits:   { memory: "128Mi", cpu: "250m" }
+        livenessProbe:
+          httpGet: { path: /health, port: 8301 }
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet: { path: /health, port: 8301 }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lendfast-borrower-service
+  namespace: lendfast
+spec:
+  selector:
+    app: lendfast-borrower-service
+  ports:
+  - { port: 8301, targetPort: 8301, name: http }
+
+---
+# ─── Application Service (8302) ───────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lendfast-application-service
+  namespace: lendfast
+  labels:
+    app: lendfast-application-service
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lendfast-application-service
+  template:
+    metadata:
+      labels:
+        app: lendfast-application-service
+        version: v1
+    spec:
+      containers:
+      - name: application-service
+        image: lendfast/application-service:latest
+        imagePullPolicy: Never
+        ports:
+        - { containerPort: 8302, name: http }
+        envFrom:
+        - configMapRef: { name: lendfast-config }
+        - secretRef:    { name: lendfast-secrets }
+        resources:
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits:   { memory: "128Mi", cpu: "250m" }
+        livenessProbe:
+          httpGet: { path: /health, port: 8302 }
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet: { path: /health, port: 8302 }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lendfast-application-service
+  namespace: lendfast
+spec:
+  selector:
+    app: lendfast-application-service
+  ports:
+  - { port: 8302, targetPort: 8302, name: http }
+
+---
+# ─── Underwriting Service — Python FastAPI (8303) ─────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lendfast-underwriting-service
+  namespace: lendfast
+  labels:
+    app: lendfast-underwriting-service
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lendfast-underwriting-service
+  template:
+    metadata:
+      labels:
+        app: lendfast-underwriting-service
+        version: v1
+    spec:
+      containers:
+      - name: underwriting-service
+        image: lendfast/underwriting-service:latest
+        imagePullPolicy: Never
+        ports:
+        - { containerPort: 8303, name: http }
+        envFrom:
+        - configMapRef: { name: lendfast-config }
+        - secretRef:    { name: lendfast-secrets }
+        resources:
+          requests: { memory: "128Mi", cpu: "100m" }
+          limits:   { memory: "256Mi", cpu: "500m" }
+        livenessProbe:
+          httpGet: { path: /health, port: 8303 }
+          initialDelaySeconds: 20
+          periodSeconds: 20
+        readinessProbe:
+          httpGet: { path: /health, port: 8303 }
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lendfast-underwriting-service
+  namespace: lendfast
+spec:
+  selector:
+    app: lendfast-underwriting-service
+  ports:
+  - { port: 8303, targetPort: 8303, name: http }
+
+---
+# ─── Loan Management (8304) ───────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lendfast-loan-management
+  namespace: lendfast
+  labels:
+    app: lendfast-loan-management
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lendfast-loan-management
+  template:
+    metadata:
+      labels:
+        app: lendfast-loan-management
+        version: v1
+    spec:
+      containers:
+      - name: loan-management
+        image: lendfast/loan-management-service:latest
+        imagePullPolicy: Never
+        ports:
+        - { containerPort: 8304, name: http }
+        envFrom:
+        - configMapRef: { name: lendfast-config }
+        - secretRef:    { name: lendfast-secrets }
+        resources:
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits:   { memory: "128Mi", cpu: "250m" }
+        livenessProbe:
+          httpGet: { path: /health, port: 8304 }
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet: { path: /health, port: 8304 }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lendfast-loan-management
+  namespace: lendfast
+spec:
+  selector:
+    app: lendfast-loan-management
+  ports:
+  - { port: 8304, targetPort: 8304, name: http }
+
+---
+# ─── Payment Service (8305) ───────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lendfast-payment-service
+  namespace: lendfast
+  labels:
+    app: lendfast-payment-service
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lendfast-payment-service
+  template:
+    metadata:
+      labels:
+        app: lendfast-payment-service
+        version: v1
+    spec:
+      containers:
+      - name: payment-service
+        image: lendfast/payment-service:latest
+        imagePullPolicy: Never
+        ports:
+        - { containerPort: 8305, name: http }
+        envFrom:
+        - configMapRef: { name: lendfast-config }
+        - secretRef:    { name: lendfast-secrets }
+        resources:
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits:   { memory: "128Mi", cpu: "250m" }
+        livenessProbe:
+          httpGet: { path: /health, port: 8305 }
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet: { path: /health, port: 8305 }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lendfast-payment-service
+  namespace: lendfast
+spec:
+  selector:
+    app: lendfast-payment-service
+  ports:
+  - { port: 8305, targetPort: 8305, name: http }
+
+---
+# ─── Collections Service (8306) ───────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lendfast-collections-service
+  namespace: lendfast
+  labels:
+    app: lendfast-collections-service
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lendfast-collections-service
+  template:
+    metadata:
+      labels:
+        app: lendfast-collections-service
+        version: v1
+    spec:
+      containers:
+      - name: collections-service
+        image: lendfast/collections-service:latest
+        imagePullPolicy: Never
+        ports:
+        - { containerPort: 8306, name: http }
+        envFrom:
+        - configMapRef: { name: lendfast-config }
+        - secretRef:    { name: lendfast-secrets }
+        resources:
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits:   { memory: "128Mi", cpu: "250m" }
+        livenessProbe:
+          httpGet: { path: /health, port: 8306 }
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet: { path: /health, port: 8306 }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lendfast-collections-service
+  namespace: lendfast
+spec:
+  selector:
+    app: lendfast-collections-service
+  ports:
+  - { port: 8306, targetPort: 8306, name: http }
+
+---
+# ─── Reporting Service (8307) ─────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lendfast-reporting-service
+  namespace: lendfast
+  labels:
+    app: lendfast-reporting-service
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lendfast-reporting-service
+  template:
+    metadata:
+      labels:
+        app: lendfast-reporting-service
+        version: v1
+    spec:
+      containers:
+      - name: reporting-service
+        image: lendfast/reporting-service:latest
+        imagePullPolicy: Never
+        ports:
+        - { containerPort: 8307, name: http }
+        envFrom:
+        - configMapRef: { name: lendfast-config }
+        - secretRef:    { name: lendfast-secrets }
+        resources:
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits:   { memory: "128Mi", cpu: "250m" }
+        livenessProbe:
+          httpGet: { path: /health, port: 8307 }
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet: { path: /health, port: 8307 }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lendfast-reporting-service
+  namespace: lendfast
+spec:
+  selector:
+    app: lendfast-reporting-service
+  ports:
+  - { port: 8307, targetPort: 8307, name: http }
